@@ -30,14 +30,11 @@ print("x_train shape:", x_train.shape)
 print("x_test shape:", x_test.shape)
 
 # Generated augmented data
-dg = ImageDataGenerator(rescale=1. / 255, zoom_range=0.2, width_shift_range=.2, height_shift_range=.2,
-                        rotation_range=30, brightness_range=[0.8, 1.2], horizontal_flip=True)
-dg_scaled = ImageDataGenerator(rescale=1. / 255)
+dg = ImageDataGenerator(rescale=1./255, zoom_range=0.2, width_shift_range=.2, height_shift_range=.2, rotation_range=30, brightness_range=[0.8, 1.2], horizontal_flip=True)
+dg_scaled = ImageDataGenerator(rescale=1./255)
 x_train, x_test = dg.flow(x_train, y_train, batch_size=batch_size), dg_scaled.flow(x_test, y_test)
-callback_checkpoint = ModelCheckpoint(filepath='best_model.hdf5', save_weights_only=False, monitor='val_accuracy',
-                                      mode='max', save_best_only=True)
-callback_lr = ReduceLROnPlateau(monitor='loss', mode='min', min_delta=0.01, patience=3, factor=.75, min_lr=0.00001,
-                                verbose=1)
+callback_checkpoint = ModelCheckpoint(filepath='best_model.hdf5', save_weights_only=False, monitor='val_accuracy', mode='max', save_best_only=True)
+callback_lr = ReduceLROnPlateau(monitor='loss', mode='min', min_delta=0.01, patience=3, factor=.75, min_lr=0.00001, verbose=1)
 
 """
 Model:
@@ -104,7 +101,7 @@ input_dim = x_train.shape[1]
 num_classes = 10
 
 
-# function that creates the model (required for KerasClassifier) while accepting the hyperparameters to tune
+# Function that creates the model (required for KerasClassifier) while accepting the hyperparameters to tune
 def create_model_2(optimizer='rmsprop', init='glorot_uniform'):
     model = Sequential()
     model.add(Dense(64, input_dim=input_dim, kernel_initializer=init, activation='relu'))
@@ -112,28 +109,27 @@ def create_model_2(optimizer='rmsprop', init='glorot_uniform'):
     model.add(Dense(64, kernel_initializer=init, activation=tf.nn.relu))
     model.add(Dense(num_classes, kernel_initializer=init, activation=tf.nn.softmax))
 
-    # compile model
+    # Compile the model using categorical cross entropy loss
     model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
     return model
 
 
-# create the sklearn model for the network
-# fix random seed for reproducibility
-seed = 7
+# Create the sklearn model for the network
+seed = 7  # Fix random seed for reproducibility
 np.random.seed(seed)
 model_init_batch_epoch_CV = KerasClassifier(build_fn=create_model_2, verbose=1)
 
-# initializers that came at the top in our previous cross-validation chosen
+# Initializers that came at the top in our previous cross-validation chosen
 init_mode = ['glorot_uniform', 'uniform']
 batches = [128, 256, 512]
 epochs = [20, 50, 100]
 
-# grid search for initializer, batch size and number of epochs
+# Grid search for initializer, batch size and number of epochs
 param_grid = dict(epochs=epochs, batch_size=batches, init=init_mode)
 grid = GridSearchCV(estimator=model_init_batch_epoch_CV, param_grid=param_grid, cv=3)
 grid_result = grid.fit(x_train, y_train)
 
-# print results
+# Print results
 print(f'Best Accuracy for {grid_result.best_score_:.4} using {grid_result.best_params_}')
 means = grid_result.cv_results_['mean_test_score']
 stds = grid_result.cv_results_['std_test_score']
